@@ -26,10 +26,8 @@ def conj_loss(X, y, Xy, M, epsilon, sol0):
     # conjugate of the loss function
     n_features = X.shape[1]
     matvec = lambda z: X.T.dot((X.dot(z))) + epsilon * z
-    from scipy.sparse.linalg.interface import LinearOperator
-    from scipy.sparse.linalg import cg
-    K = LinearOperator((n_features, n_features), matvec, dtype=X.dtype)
-    sol = cg(K, M.ravel(order='F') + Xy, maxiter=20, x0=sol0)[0]
+    K = splinalg.LinearOperator((n_features, n_features), matvec, dtype=X.dtype)
+    sol = splinalg.cg(K, M.ravel(order='F') + Xy, maxiter=20, x0=sol0)[0]
     p = np.dot(sol, M.ravel(order='F')) - .5 * (linalg.norm(y - X.dot(sol)) ** 2)
     p -= 0.5 * epsilon * (linalg.norm(sol) ** 2)
     return p, sol
@@ -94,7 +92,7 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, p
         t = tk
         if n_iter % 200 == 199:
             tmp = grad_g.reshape(*B.shape, order='F')
-            tmp = splinalg.svds(tmp, 1, tol=.1, maxiter=5000)[1][0]
+            tmp = splinalg.svds(tmp, 1, tol=.1)[1][0]
             scale = min(1., alpha / tmp)
             M = grad_g * scale
             M = M.reshape(*B.shape, order='F')
