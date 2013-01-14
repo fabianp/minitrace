@@ -2,7 +2,7 @@ import numpy as np
 from scipy import linalg
 from numpy import testing
 
-from trace import trace
+from minitrace import trace
 
 def test_1():
     B = np.ones((3, 3))
