@@ -2,6 +2,7 @@ import numpy as np
 from scipy import linalg
 from scipy.sparse import linalg as splinalg
 
+__version__ = '0.2'
 
 def prox_l1(a, b):
     return np.sign(a) * np.fmax(np.abs(a) - b, 0)
@@ -41,10 +42,9 @@ def trace_pobj(X, y, B, alpha, epsilon, s_vals):
             alpha * linalg.norm(s_vals, 1)
 
 
-def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, progress=False, warm_start=None,
+def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, warm_start=None,
           n_svals=10, L=None):
     """
-
     solve the model:
 
         ||y - X vec(B)||_2 ^2 + alpha ||B||_* + beta ||B||_F

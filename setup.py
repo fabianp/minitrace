@@ -1,4 +1,4 @@
-import memory_profiler
+import minitrace
 from distutils.core import setup
 
 CLASSIFIERS = """\
@@ -18,7 +18,7 @@ setup(
     name='minitrace',
     description='A module for machine learning models with trace norm penalties',
     long_description=open('README.rst').read(),
-    version=memory_profiler.__version__,
+    version=minitrace.__version__,
     author='Fabian Pedregosa',
     author_email='fabian@fseoane.net',
     url='http://pypi.python.org/pypi/minitrace',
