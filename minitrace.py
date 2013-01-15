@@ -59,8 +59,8 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, w
 
     shape_B : tuple
     """
-
-    n_samples = X.shape[0]
+    A = splinalg.aslinearoperator(X)
+    n_samples = A.shape[0]
     #alpha = alpha * n_samples
     beta = beta * n_samples
 
@@ -70,12 +70,12 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, w
     else:
         B = warm_start
     gap = []
-    #pbar = ProgressBar(max_iter)
 
     if L is None:
-        L = splinalg.svds(X, 1)[1][0] ** 2
-
-    L += beta
+        def K_matvec(v):
+            return A.rmatvec(A.matvec(v)) + beta * v
+        K = splinalg.LinearOperator((A.shape[1], A.shape[1]), matvec=K_matvec, dtype=A.dtype)
+        L = splinalg.eigsh(K, 1, return_eigenvectors=False)[0]
 
     step_size = 1. / L
     Xy = X.T.dot(y)
