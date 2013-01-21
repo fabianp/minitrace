@@ -26,10 +26,10 @@ def prox(X, t, v0, n_nonzero=1000, n=0, algo='dense', n_svals=10):
 def conj_loss(X, y, Xy, M, epsilon, sol0):
     # conjugate of the loss function
     n_features = X.shape[1]
-    matvec = lambda z: X.T.dot((X.dot(z))) + epsilon * z
+    matvec = lambda z: X.rmatvec((X.matvec(z))) + epsilon * z
     K = splinalg.LinearOperator((n_features, n_features), matvec, dtype=X.dtype)
     sol = splinalg.cg(K, M.ravel(order='F') + Xy, maxiter=20, x0=sol0)[0]
-    p = np.dot(sol, M.ravel(order='F')) - .5 * (linalg.norm(y - X.dot(sol)) ** 2)
+    p = np.dot(sol, M.ravel(order='F')) - .5 * (linalg.norm(y - X.matvec(sol)) ** 2)
     p -= 0.5 * epsilon * (linalg.norm(sol) ** 2)
     return p, sol
 
@@ -37,7 +37,7 @@ def trace_pobj(X, y, B, alpha, epsilon, s_vals):
     n_samples, _ = X.shape
     bt = B.ravel(order='F')
     #s_vals = linalg.svdvals(B)
-    return  0.5 * (linalg.norm(y - X.dot(bt)) ** 2) + \
+    return  0.5 * (linalg.norm(y - X.matvec(bt)) ** 2) + \
             0.5 * epsilon * (linalg.norm(bt) ** 2) + \
             alpha * linalg.norm(s_vals, 1)
 
@@ -53,13 +53,13 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, w
 
     Parameters
     ----------
-    X : sparse matrix
+    X : LinearOperator
 
     L : None
 
     shape_B : tuple
     """
-
+    X = splinalg.aslinearoperator(X)
     n_samples = X.shape[0]
     #alpha = alpha * n_samples
     beta = beta * n_samples
@@ -70,21 +70,21 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, w
     else:
         B = warm_start
     gap = []
-    #pbar = ProgressBar(max_iter)
 
     if L is None:
-        L = splinalg.svds(X, 1)[1][0] ** 2
-
-    L += beta
+        def K_matvec(v):
+            return X.rmatvec(X.matvec(v)) + beta * v
+        K = splinalg.LinearOperator((X.shape[1], X.shape[1]), matvec=K_matvec, dtype=X.dtype)
+        L = splinalg.eigsh(K, 1, return_eigenvectors=False)[0]
 
     step_size = 1. / L
-    Xy = X.T.dot(y)
+    Xy = X.rmatvec(y)
     v0 = None
     t = 1.
     conj0 = None
     for n_iter in range(max_iter):
         b = B.ravel(order='F')
-        grad_g = -Xy + X.T.dot(X.dot(b)) + beta * b
+        grad_g = -Xy + X.rmatvec(X.matvec(b)) + beta * b
         tmp = (b - step_size * grad_g).reshape(*B.shape, order='F')
         xk, s_vals, u0, v0 = prox(tmp, step_size * alpha, v0, n_svals=n_svals)
         tk = (1 + np.sqrt(1 + 4 * t * t)) / 2.
@@ -107,7 +107,5 @@ def trace(X, y, alpha, beta, shape_B, rtol=1e-3, max_iter=1000, verbose=False, w
             gap.append(dual_gap)
             if np.abs(dual_gap) <= rtol:
                 break
-#        if progress:
-#            pbar.animate_ipython(n_iter)
-    #pbar.finish()
+
     return B, gap
