@@ -53,7 +53,11 @@ def rank_one(X, y, alpha, size_u, size_v, Z=None, u0=None, v0=None, rtol=1e-6, m
 
         if verbose:
             v0 = v0.reshape((size_v, 1))
-            pobj = np.linalg.norm(y - X.dot(np.dot(u0, v0.T).ravel('F'))) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
+            if Z is None:
+                pobj = np.linalg.norm(y - X.dot(np.dot(u0, v0.T).ravel('F'))) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
+            else:
+                pobj = np.linalg.norm(y - X.dot(np.dot(u0, v0.T).ravel('F')) - np.dot(Z, w0)) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
+
             print('POBJ: %s' % pobj)
     if Z is None:
         return u0.reshape((size_u, 1)), v0.reshape((size_v, 1))
