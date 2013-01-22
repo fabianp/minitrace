@@ -25,31 +25,31 @@ def rank_one(X, y, alpha, shape_B, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=
 
         # update v
         v0 = v0.reshape((shape_B[1], 1))
-        H = X.dot(sparse.kron(v0, sparse.eye(shape_B[1], shape_B[1])))
+        Kron_v = sparse.kron(v0, sparse.eye(shape_B[1], shape_B[1]))
         def K_matvec(z):
-            return H.T.dot(H.dot(z))
-        K = splinalg.LinearOperator((H.shape[1], H.shape[1]), matvec=K_matvec, dtype=H.dtype)
+            return Kron_v.T.dot(X.T.dot(X.dot(Kron_v.dot(z))))
+        K = splinalg.LinearOperator((Kron_v.shape[1], Kron_v.shape[1]), matvec=K_matvec, dtype=X.dtype)
         if Z is None:
-            Ky = H.T.dot(y)
+            Ky = Kron_v.T.dot(X.T.dot(y))
         else:
-            Ky = H.T.dot(y - np.dot(Z, w0))
+            Ky = Kron_v.T.dot(X.T.dot(y - np.dot(Z, w0)))
         u0, info = splinalg.cg(K, Ky, x0=u0, tol=rtol)
 
         # update u
         u0 = u0.reshape((shape_B[0], 1))
-        G = X.dot(sparse.kron(sparse.eye(shape_B[0], shape_B[0]), u0))
+        Kron_u = sparse.kron(sparse.eye(shape_B[0], shape_B[0]), u0)
         def K2_matvec(z):
-            return G.T.dot(G.dot(z)) + alpha * z
-        K = splinalg.LinearOperator((G.shape[1], G.shape[1]), matvec=K2_matvec, dtype=G.dtype)
+            return Kron_u.T.dot(X.T.dot(X.dot(Kron_u.dot(z)))) + alpha * z
+        K = splinalg.LinearOperator((Kron_u.shape[1], Kron_u.shape[1]), matvec=K2_matvec, dtype=X.dtype)
         if Z is None:
-            Ky = G.T.dot(y) + alpha * np.ones(H.shape[1])
+            Ky = Kron_u.T.dot(X.T.dot(y)) + alpha * np.ones(Kron_u.shape[1])
         else:
-            Ky = G.T.dot(y - np.dot(Z, w0)) + alpha * np.ones(H.shape[1])
+            Ky = Kron_u.T.dot(X.T.dot(y - np.dot(Z, w0))) + alpha * np.ones(Kron_u.shape[1])
         v0, info = splinalg.cg(K, Ky, x0=v0, tol=rtol)
 
         # update w
         if Z is not None:
-            w0 = linalg.lstsq(Z, y - G.dot(v0))[0]
+            w0 = linalg.lstsq(Z, y - X.dot(Kron_u.dot(v0)))[0]
 
         if verbose:
             v0 = v0.reshape((shape_B[1], 1))
