@@ -13,7 +13,7 @@ def low_rank(X, y, alpha, shape_u, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=
     Parameters
     ----------
     """
-    #X = splinalg.aslinearoperator(X)
+    X = splinalg.aslinearoperator(X)
     assert len(shape_u) == 2
     shape_v = (X.shape[1] / shape_u[0], shape_u[1]) # TODO: check first dimension is integer
     if u0 is None:
@@ -31,24 +31,24 @@ def low_rank(X, y, alpha, shape_u, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=
         size_id = X.shape[1] / shape_v[0]
         Kron_v = sparse.kron(v0, sparse.eye(size_id, shape_u[0] * shape_u[1] / shape_v[1]))
         def K_matvec(z):
-            return Kron_v.T.dot(X.T.dot(X.dot(Kron_v.dot(z))))
+            return Kron_v.T.dot(X.rmatvec(X.matvec(Kron_v.dot(z))))
         K = splinalg.LinearOperator((Kron_v.shape[1], Kron_v.shape[1]), matvec=K_matvec, dtype=X.dtype)
         if Z is None:
-            Ky = Kron_v.T.dot(X.T.dot(y))
+            Ky = Kron_v.T.dot(X.rmatvec(y))
         else:
-            Ky = Kron_v.T.dot(X.T.dot(y - np.dot(Z, w0)))
+            Ky = Kron_v.T.dot(X.rmatvec(y - np.dot(Z, w0)))
         u0, info = splinalg.cg(K, Ky, x0=u0.ravel(), tol=rtol)
         u0 = u0.reshape(shape_u, order='F')
 
         # update u
         Kron_u = sparse.kron(sparse.eye(X.shape[1] / shape_u[0], shape_v[1] * shape_v[0] / shape_u[1]), u0)
         def K2_matvec(z):
-            return Kron_u.T.dot(X.T.dot(X.dot(Kron_u.dot(z)))) + alpha * z
+            return Kron_u.T.dot(X.rmatvec(X.matvec(Kron_u.dot(z)))) + alpha * z
         K = splinalg.LinearOperator((Kron_u.shape[1], Kron_u.shape[1]), matvec=K2_matvec, dtype=X.dtype)
         if Z is None:
-            Ky = Kron_u.T.dot(X.T.dot(y)) + alpha * np.ones(Kron_u.shape[1])
+            Ky = Kron_u.T.dot(X.rmatvec(y)) + alpha * np.ones(Kron_u.shape[1])
         else:
-            Ky = Kron_u.T.dot(X.T.dot(y - np.dot(Z, w0))) + alpha * np.ones(Kron_u.shape[1])
+            Ky = Kron_u.T.dot(X.rmatvec(y - np.dot(Z, w0))) + alpha * np.ones(Kron_u.shape[1])
         vt0, info = splinalg.cg(K, Ky, x0=v0.T.ravel(), tol=rtol)
         vt0 = vt0.reshape((shape_v[1], shape_v[0]), order='F')
         v0 = vt0.T
@@ -56,14 +56,14 @@ def low_rank(X, y, alpha, shape_u, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=
         # update w
         if Z is not None:
             # TODO: cache SVD(Z)
-            w0 = linalg.lstsq(Z, y - X.dot(np.dot(u0, v0.T).ravel('F')))[0]
+            w0 = linalg.lstsq(Z, y - X.matvec(np.dot(u0, v0.T).ravel('F')))[0]
 
         if verbose:
             v0 = v0.reshape(shape_v)
             if Z is None:
-                pobj = np.linalg.norm(y - X.dot(np.dot(u0, v0.T).ravel('F'))) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
+                pobj = np.linalg.norm(y - X.matvec(np.dot(u0, v0.T).ravel('F'))) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
             else:
-                pobj = np.linalg.norm(y - X.dot(np.dot(u0, v0.T).ravel('F')) - np.dot(Z, w0)) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
+                pobj = np.linalg.norm(y - X.matvec(np.dot(u0, v0.T).ravel('F')) - np.dot(Z, w0)) ** 2 + alpha * linalg.norm(v0 - 1) ** 2
 
             print('POBJ: %s' % pobj)
     if Z is None:
