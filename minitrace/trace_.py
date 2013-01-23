@@ -2,8 +2,6 @@ import numpy as np
 from scipy import linalg
 from scipy.sparse import linalg as splinalg
 
-__version__ = '0.2'
-
 def prox_l1(a, b):
     return np.sign(a) * np.fmax(np.abs(a) - b, 0)
 
