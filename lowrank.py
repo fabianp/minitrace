@@ -3,7 +3,7 @@ from scipy import sparse, linalg
 from scipy.sparse import linalg as splinalg
 
 
-def rank_one(X, y, alpha, shape_u, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=100, verbose=False):
+def low_rank(X, y, alpha, shape_u, Z=None, u0=None, v0=None, rtol=1e-6, maxiter=100, verbose=False):
     """
 
     min over u and v:
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     u_true, v_true = np.random.rand(size_u, 2), 1 + .1 * np.random.randn(size_v, 2)
     B = np.dot(u_true, v_true.T)
     y = X.dot(B.ravel('F')) + .3 * np.random.randn(X.shape[0])
-    u, v = rank_one(X, y, .1, (size_u, 2), Z=None, maxiter=500, verbose=True)
+    u, v = low_rank(X, y, .1, (size_u, 2), Z=None, maxiter=500, verbose=True)
 
     import pylab as plt
     plt.matshow(B)
